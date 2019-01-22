@@ -1,29 +1,105 @@
-import 'package:http/http.dart';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 
-Future<http.Response> fetchCollegeAmbassador() {
-  return http.get('http://advitiya.in/cr/api/tc/collegerep/2/?format=json&api_key=0f6a90934a3b8991679dd986ab3e287a76bf5927&username=advitiya');
+import 'dart:async';
+import 'dart:convert';
+
+
+
+
+Future<List<User>> fetchUserList() async{
+  final response = await http.get('http://advitiya.in/cr/api/tc/user/?format=json');
+
+  if(response.statusCode == 200){
+    return User.fromJson(json.decode(response.body));
+  }
+  else{
+    throw Exception('Could not fetch user data');
+  }
 }
 
-class CollegeAmbassador{
-  final String college;
-  final int user_num;
-  final String past_xp;
-  final String why_cr;
-  final int points;
-  final String phone;
-  final String first_name;
-  final String last_name;
+List<User> parseUsers(String responseBody){
+  final parsed = json.decode(responseBody).cast<Map<String, dynamic>();
+  return parsed.map<User>((json)=>User.fromJson(json)).toList();
+}
+
+
+class User{
   final String email;
+  final String firstName;
+  final String lastName;
 
-  CollegeAmbassador({this.college, this.past_xp, this.phone, this.points, this.user_num, this.why_cr, this.email, this.first_name, this.last_name});
+  User({this.email, this.firstName, this.lastName});
 
-  factory CollegeAmbassador.fromJson(Map<String, dynamic> json) {
-    return CollegeAmbassador(
-      college: json['userId'],
-      id: json['id'],
-      title: json['title'],
-      body: json['body'],
+  factory User.fromJson(Map<String, dynamic> json){
+    return User(
+      email: json['email'],
+      firstName : json['first_name'],
+      lastName: json['last_name']
     );
   }
 }
+class CollegeAmbassador{
+  final int id;
+  final int points;
+  final String college;
+  final String past_xp;
+
+  CollegeAmbassador({this.id, this.points, this.college, this.past_xp});
+
+  factory CollegeAmbassador.fromJson(Map<String, dynamic> json) {
+    return CollegeAmbassador(
+      id: json['id'],
+      points: json['points'],
+      college: json['college'],
+      past_xp: json['past_xp'],
+    );
+  }
+}
+
+class MyApp extends StatelessWidget{
+  
+
+  MyApp({Key key}):super(key:key);
+
+  @override
+  Widget build(BuildContext context){
+    return MaterialApp(
+      title:'Advitiya Internal App',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+      ),
+      home: Scaffold(
+        appBar: AppBar(
+          title:Text('Advitiya Inernal App')
+        ),
+        body: Center(
+          child: FutureBuilder<List<User>>(
+            future: fetchUserList(),
+            builder: (context, snapshot){
+              if(snapshot.hasData){
+                return ListViewUsers(users:snapshot.data);
+              }
+              else if(snapshot.hasError){
+                return Text("${snapshot.error}");
+              }
+              return CircularProgressIndicator();
+            }
+          ),
+        )
+      )
+    );
+  }
+}
+
+class ListViewUsers extends StatelessWidget{
+  final List<User> users;
+
+  ListViewUsers({users:users});
+}
+
+void main(){
+  runApp(MyApp(ca: fetchCollegeAmbassador()));
+  
+}
+
